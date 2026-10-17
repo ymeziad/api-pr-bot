@@ -369,7 +369,7 @@ function RepoRow({ r, now, expanded, onToggle }: { r: RepoState; now: number; ex
           </div>
         </td>
         <td className="px-4 py-5 text-right font-mono text-sm tabular-nums text-slate-400">{r.startedAt ? formatElapsed(elapsed) : "–"}</td>
-        <td className="px-6 py-5 text-right">
+        <td className="min-w-0 break-words px-6 py-5 text-right">
           <Result r={r} />
         </td>
       </tr>
@@ -447,7 +447,8 @@ function Result({ r }: { r: RepoState }) {
     );
   }
   if (r.stage === "rejected") {
-    return <span className="inline-flex max-w-[220px] items-center gap-1.5 text-left text-sm text-rose-300"><X className="h-4 w-4 flex-none" /> Rejected: {r.rejectionReason}</span>;
+    // The reason is in the row message; keep this cell compact so it never overflows the card.
+    return <span title={r.rejectionReason} className="inline-flex items-center gap-1.5 text-sm text-rose-300"><X className="h-4 w-4 flex-none" /> Rejected</span>;
   }
   if (r.stage === "error") {
     return <span className="inline-flex items-center gap-1.5 text-sm text-rose-300"><X className="h-4 w-4" /> Error</span>;
