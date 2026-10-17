@@ -76,6 +76,12 @@ export async function runTests(sb: Sandbox, repoDir: string) {
   return { ok: r.code === 0, output: combine(r) };
 }
 
+/** vitest's `FAIL  file > suite > test` line (or a `×` line), so a rejection names the test that pinned it. */
+export function firstFailingTest(output: string): string | undefined {
+  const m = output.match(/^\s*FAIL\s+(\S.*?)\s*$/m) ?? output.match(/^\s*[×✗]\s+(\S.*?)(?:\s+\d+ms)?\s*$/m);
+  return m?.[1];
+}
+
 /**
  * Runs inside the sandbox with node: reads every non-test source file and counts regex hits.
  * Input on stdin: { files, mustNotMatch, mustMatch }.
@@ -167,7 +173,16 @@ export async function runGate(
 
   const tests = await runTests(sb, repoDir);
   if (!tests.ok) {
-    return { ok: false, check: "tests", reason: "tests failed", details: tests.output, changedFiles: files, typecheckOutput: tc.output, testOutput: tests.output };
+    const failing = firstFailingTest(tests.output);
+    return {
+      ok: false,
+      check: "tests",
+      reason: failing ? `tests failed: ${failing}` : "tests failed",
+      details: tests.output,
+      changedFiles: files,
+      typecheckOutput: tc.output,
+      testOutput: tests.output,
+    };
   }
 
   const v = await checkVerifyPatterns(sb, repoDir, spec.verify);
