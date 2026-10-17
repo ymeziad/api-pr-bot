@@ -16,6 +16,7 @@
 | [acme-shop](https://github.com/ymeziad/acme-shop) | affected (2 call sites) | unaffected |
 | [bookly-api](https://github.com/ymeziad/bookly-api) | affected (1) | affected (1) |
 | [notes-app](https://github.com/ymeziad/notes-app) | unaffected | unaffected |
+| [legacy-billing](https://github.com/ymeziad/legacy-billing) | affected (1), **rejected by the gate**: its test pins the Charges call | unaffected |
 
 Source lives in `demo-repos/`. Republish with `GITHUB_ORG=ymeziad scripts/publish-demo-repos.sh`.
 
@@ -38,7 +39,7 @@ The full recording plan is in [docs/demo-script.md](docs/demo-script.md).
 - **Sandbox fallback.** If Freestyle is down, set `SANDBOX=docker` (needs Docker or Colima running locally). Same pipeline, same PRs.
 - **Live compile fallback.** Compiling from a URL or text gives up after 30s with a clear error. Click a quick-pick change instead; those load the hand-checked specs in `config/specs/`.
 - **bookly-api is hit by both changes.** Running both quick picks gives it two separate PRs (`bookings.ts` for the breaking change, `deposits.ts` for the feature). They touch different files and don't conflict.
-- **Rejected path.** Start the dashboard with `FIXER_SABOTAGE=protected-always npm run dev` to force the gate to reject every fix (the agent "edits a test"). Use it to rehearse what a failure looks like; never record with it on.
+- **Rejected path.** `legacy-billing` is rejected for real: its test asserts `charges.create` was called, so a correct migration fails the test, and Shipfix won't edit tests. For a forced rejection on any repo while debugging, `FIXER_SABOTAGE=protected-always npm run dev`; never record with it on.
 - **End-to-end without the dashboard:** `npx tsx scripts/try-e2e.ts [spec-id] [repo ...] [--mock]`.
 
 ## Ownership
