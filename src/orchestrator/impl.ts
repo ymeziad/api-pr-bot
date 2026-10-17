@@ -5,10 +5,19 @@ import { scanRepo } from "@/scanner";
 import { loadRepos } from "@/scanner/repos";
 import { openPullRequest } from "@/pr";
 import { fixRepo } from "@/fixer";
+import { mocksEnabled } from "./mode";
 
-export const mocksEnabled = () => process.env.USE_MOCKS !== "false";
+export { mocksEnabled };
+
+let warned = false;
 
 export function impl() {
-  if (mocksEnabled()) return mocks;
+  if (mocksEnabled()) {
+    if (!warned) {
+      console.warn('[orchestrator] USE_MOCKS is not "false": using MOCK implementations');
+      warned = true;
+    }
+    return mocks;
+  }
   return { compileChange, loadCachedSpec, scanRepo, loadRepos, openPullRequest, fixRepo };
 }
