@@ -183,6 +183,7 @@ export async function fixRepo(args: {
       result.attempts = attempt;
       log(`attempt ${attempt}: running claude`);
       await runClaude(sb, buildPrompt(spec, scan, previousFailure), log);
+      await sabotage(sb, attempt, log);
 
       log(`attempt ${attempt}: gate`);
       gate = await runGate(sb, REPO_DIR, spec, () => emit({ repo: repo.name, stage: "testing" }));
@@ -230,6 +231,25 @@ export async function fixRepo(args: {
       );
     }
   }
+}
+
+/**
+ * Dev-only: FIXER_SABOTAGE forces a gate failure after the agent runs, to exercise the retry path.
+ *   typecheck        – attempt 1: append a type error to a file the agent changed (agent must fix it)
+ *   protected        – attempt 1: edit a test file (we revert it, agent retries)
+ *   protected-always – every attempt: edit a test file (ends in "rejected")
+ */
+async function sabotage(sb: Sandbox, attempt: number, log: (m: string) => void) {
+  const mode = process.env.FIXER_SABOTAGE;
+  if (!mode || (attempt > 1 && mode !== "protected-always")) return;
+  const pick = mode === "typecheck"
+    ? "git diff --name-only -- '*.ts' | head -1"
+    : "git ls-files | grep -E '(^|/)(tests?|__tests__)/|\\.(test|spec)\\.' | head -1";
+  const file = (await sb.exec(pick, { cwd: REPO_DIR })).stdout.trim();
+  if (!file) return log(`SABOTAGE(${mode}): no target file found, skipping`);
+  const line = mode === "typecheck" ? `export const __sabotage: number = "not a number";` : `// sabotage: agent edited a test`;
+  await sb.exec(`printf '\\n%s\\n' ${sh(line)} >> ${sh(file)}`, { cwd: REPO_DIR });
+  log(`SABOTAGE(${mode}) attempt ${attempt}: modified ${file}`);
 }
 
 /**
