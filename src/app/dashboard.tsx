@@ -32,6 +32,12 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+// Rejection reasons can be multi-line npm output; rows show the first line, the title holds the rest.
+function firstLine(text: string, max = 120) {
+  const line = text.trim().split("\n")[0].trim();
+  return line.length > max ? `${line.slice(0, max - 1)}…` : line;
+}
+
 function formatElapsed(ms: number) {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -323,8 +329,11 @@ function RepoRow({ r, now, expanded, onToggle }: { r: RepoState; now: number; ex
             <span className="font-medium text-white">{r.repo}</span>
             <ChevronDown className={cn("h-4 w-4 text-slate-600 transition-transform", expanded && "rotate-180")} />
           </div>
-          <p className={cn("mt-1.5 pl-6 text-sm", r.retrying ? "text-amber-300" : r.stage === "error" ? "text-rose-300" : "text-slate-500")}>
-            {r.message ?? "Queued"}
+          <p
+            title={r.message}
+            className={cn("mt-1.5 break-words pl-6 text-sm", r.retrying ? "text-amber-300" : r.stage === "error" || r.stage === "rejected" ? "text-rose-300" : "text-slate-500")}
+          >
+            {r.message ? firstLine(r.message) : "Queued"}
           </p>
         </td>
         <td className="px-4 py-5">

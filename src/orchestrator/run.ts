@@ -10,6 +10,8 @@ const DEFAULT_MESSAGES: Partial<Record<RunEvent["stage"], string>> = {
   passed: "Typecheck clean · all tests passed · tests untouched",
 };
 
+const FIXER_TERMINAL: RunEvent["stage"][] = ["passed", "rejected", "error"];
+
 export async function runChange(
   spec: ChangeSpec,
   repos: RepoTarget[],
@@ -37,8 +39,8 @@ export async function runChange(
           }
           emit({ repo: repo.name, stage: "affected", matches: scan.matches, message: `${scan.matches.length} affected location(s)` });
 
-          // fixRepo emits its own "passed"; we emit it below with the PR step, so drop the fixer's copy.
-          const fix = await fixRepo({ repo, spec, scan, emit: (e) => e.stage !== "passed" && emit(e) });
+          // fixRepo emits its own terminal events; we emit exactly one below, so drop the fixer's copies.
+          const fix = await fixRepo({ repo, spec, scan, emit: (e) => !FIXER_TERMINAL.includes(e.stage) && emit(e) });
           if (fix.status === "passed") {
             emit({ repo: repo.name, stage: "passed", message: "Opening pull request", testOutput: fix.testOutput || undefined });
             const prUrl = await openPullRequest({ repo, spec, scan, fix });

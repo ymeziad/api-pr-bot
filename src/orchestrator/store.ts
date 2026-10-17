@@ -78,6 +78,8 @@ function reduce(prev: RepoState | undefined, e: RunEvent): RepoState {
     case "pr_opened":
       st.scan = st.fix = st.test = st.pr = "done"; break;
     case "error": {
+      // A step already failed: a repeated error must not fail the next pending step too.
+      if ((Object.keys(st) as StepKey[]).some((k) => st[k] === "failed")) { s.retrying = false; break; }
       const active = (Object.keys(st) as StepKey[]).find((k) => st[k] === "active")
         ?? (Object.keys(st) as StepKey[]).find((k) => st[k] === "pending");
       if (active) st[active] = "failed";
