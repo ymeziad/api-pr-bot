@@ -171,10 +171,11 @@ const LABELS = {
 async function addLabels(octokit: Octokit, repo: RepoTarget, issueNumber: number, spec: ChangeSpec): Promise<void> {
   const names = ["api-pr-bot", spec.type === "breaking" ? "breaking-change" : "new-feature"] as const;
   try {
+    const { data: existing } = await octokit.issues.listLabelsForRepo({ owner: repo.owner, repo: repo.name, per_page: 100 });
     for (const name of names) {
-      await octokit.issues.createLabel({ owner: repo.owner, repo: repo.name, name, ...LABELS[name] }).catch((err) => {
-        if (err.status !== 422) throw err; // 422 = already exists
-      });
+      if (!existing.some((l) => l.name === name)) {
+        await octokit.issues.createLabel({ owner: repo.owner, repo: repo.name, name, ...LABELS[name] });
+      }
     }
     await octokit.issues.addLabels({ owner: repo.owner, repo: repo.name, issue_number: issueNumber, labels: [...names] });
   } catch (err) {
