@@ -53,16 +53,18 @@ export function Dashboard({ mocks }: { mocks: boolean }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inFlight = useRef(false);
+  const [lost, setLost] = useState(false); // polling gave up; the run may still exist but we can't see it
 
   const stopPolling = () => { if (pollRef.current) clearInterval(pollRef.current); pollRef.current = null; };
   useEffect(() => stopPolling, []);
 
   // Tick the elapsed timers while a run is live.
   useEffect(() => {
-    if (!run || run.done) return;
+    if (!run || run.done || lost) return;
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
-  }, [run]);
+  }, [run, lost]);
 
   const compile = useCallback(async (body: { cachedId?: string; url?: string; text?: string }, key: string) => {
     setCompiling(key); setError(null); stopPolling(); setRun(null); setSpec(null);
@@ -86,21 +88,36 @@ export function Dashboard({ mocks }: { mocks: boolean }) {
 
   const startRun = async () => {
     if (!spec) return;
-    setStarting(true); setError(null); stopPolling(); setExpanded(null);
+    setStarting(true); setError(null); stopPolling(); setExpanded(null); setLost(false);
     try {
       const res = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spec }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Run failed to start");
+      let failures = 0;
+      let stopped = false;
+      const finish = () => { stopped = true; stopPolling(); };
+      const giveUp = (message: string) => { finish(); setLost(true); setError(message); };
       const poll = async () => {
-        const r = await fetch(`/api/runs/${data.runId}`, { cache: "no-store" });
-        if (!r.ok) return;
-        const state = (await r.json()) as RunState;
-        setRun(state);
-        setNow(Date.now());
-        if (state.done) stopPolling();
+        if (inFlight.current) return; // never overlap: a slow response must not roll the UI back
+        inFlight.current = true;
+        try {
+          const r = await fetch(`/api/runs/${data.runId}`, { cache: "no-store" });
+          if (r.status === 404) return giveUp("Run state was lost (the server restarted). Click Run again.");
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const state = (await r.json()) as RunState;
+          failures = 0;
+          setRun(state);
+          setNow(Date.now());
+          if (state.done) finish();
+        } catch {
+          if (++failures >= 3) giveUp("Lost connection to the server. Check that npm run dev is running, then click Run again.");
+        } finally {
+          inFlight.current = false;
+        }
       };
+      inFlight.current = false;
       await poll();
-      pollRef.current = setInterval(poll, 1000);
+      if (!stopped) pollRef.current = setInterval(poll, 1000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -207,9 +224,9 @@ export function Dashboard({ mocks }: { mocks: boolean }) {
                 <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">{spec.title}</h2>
                 <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-slate-400">{spec.summary}</p>
               </div>
-              <ShimmerButton onClick={startRun} disabled={starting || (run !== null && !run.done)} className="px-7 py-3.5 text-base">
-                {starting || (run && !run.done) ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" fill="currentColor" />}
-                {run && !run.done ? "Running…" : run?.done ? "Run again" : "Run on connected repos"}
+              <ShimmerButton onClick={startRun} disabled={starting || (run !== null && !run.done && !lost)} className="px-7 py-3.5 text-base">
+                {starting || (run && !run.done && !lost) ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" fill="currentColor" />}
+                {run && !run.done && !lost ? "Running…" : run?.done || lost ? "Run again" : "Run on connected repos"}
               </ShimmerButton>
             </div>
 
@@ -246,7 +263,9 @@ export function Dashboard({ mocks }: { mocks: boolean }) {
             <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
               <h2 className="font-semibold text-white">Connected repositories</h2>
               <span className="flex items-center gap-2 text-sm text-slate-400">
-                {run.done ? <><Check className="h-4 w-4 text-emerald-400" /> Run complete</> : <><span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" /> Live</>}
+                {run.done ? <><Check className="h-4 w-4 text-emerald-400" /> Run complete</>
+                  : lost ? <><X className="h-4 w-4 text-rose-400" /> Stopped</>
+                  : <><span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" /> Live</>}
               </span>
             </div>
             <table className="w-full table-fixed text-left">
