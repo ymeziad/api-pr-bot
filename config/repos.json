@@ -1,0 +1,20 @@
+[
+  {
+    "owner": "ymeziad",
+    "name": "acme-shop",
+    "defaultBranch": "main",
+    "cloneUrl": "https://github.com/ymeziad/acme-shop.git"
+  },
+  {
+    "owner": "ymeziad",
+    "name": "bookly-api",
+    "defaultBranch": "main",
+    "cloneUrl": "https://github.com/ymeziad/bookly-api.git"
+  },
+  {
+    "owner": "ymeziad",
+    "name": "notes-app",
+    "defaultBranch": "main",
+    "cloneUrl": "https://github.com/ymeziad/notes-app.git"
+  }
+]
