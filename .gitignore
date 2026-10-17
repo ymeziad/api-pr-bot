@@ -3,3 +3,4 @@ node_modules
 .env*
 !.env.example
 demo-repos/*/node_modules
+.fixer-out/
