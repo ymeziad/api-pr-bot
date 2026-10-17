@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { ChangeSpec } from "../shared/types";
 
 const MAX_DOC_CHARS = 40_000;
+const COMPILE_TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS) || 30_000;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const SpecSchema = z.object({
@@ -47,8 +48,11 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-async function fetchDoc(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { "user-agent": "api-pr-bot/0.1" }, signal: AbortSignal.timeout(15_000) });
+async function fetchDoc(url: string, deadline: AbortSignal): Promise<string> {
+  const res = await fetch(url, {
+    headers: { "user-agent": "shipfix/0.1" },
+    signal: AbortSignal.any([deadline, AbortSignal.timeout(15_000)]),
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return htmlToText(await res.text()).slice(0, MAX_DOC_CHARS);
 }
@@ -87,10 +91,22 @@ function normalize(raw: z.infer<typeof SpecSchema>): ChangeSpec {
 }
 
 export async function compileChange(input: { url?: string; text?: string }): Promise<ChangeSpec> {
+  const deadline = AbortSignal.timeout(COMPILE_TIMEOUT_MS);
+  try {
+    return await compileWithin(input, deadline);
+  } catch (err) {
+    if (deadline.aborted) {
+      throw new Error(`Live compile took longer than ${COMPILE_TIMEOUT_MS / 1000}s. Pick a quick-pick change instead.`);
+    }
+    throw err;
+  }
+}
+
+async function compileWithin(input: { url?: string; text?: string }, deadline: AbortSignal): Promise<ChangeSpec> {
   let doc = input.text?.trim() ?? "";
   if (input.url) {
     try {
-      const fetched = await fetchDoc(input.url);
+      const fetched = await fetchDoc(input.url, deadline);
       doc = doc ? `${doc}\n\n--- Page content from ${input.url} ---\n${fetched}` : fetched;
     } catch (err) {
       if (!doc) throw new Error(`Could not fetch ${input.url}: ${(err as Error).message}`);
@@ -98,7 +114,7 @@ export async function compileChange(input: { url?: string; text?: string }): Pro
   }
   if (!doc) throw new Error("compileChange needs a url or text");
 
-  const client = new Anthropic();
+  const client = new Anthropic({ maxRetries: 1 });
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
   const messages: Anthropic.MessageParam[] = [
     {
@@ -115,7 +131,7 @@ export async function compileChange(input: { url?: string; text?: string }): Pro
       system: SYSTEM,
       messages,
       output_config: { effort: "low", format: zodOutputFormat(SpecSchema) },
-    });
+    }, { signal: deadline });
     if (response.stop_reason === "refusal") throw new Error("Model declined to compile this change");
     const parsed = response.parsed_output;
     lastErrors = parsed ? validateSpec(normalize(parsed)) : ["response did not match the ChangeSpec schema"];

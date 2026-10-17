@@ -37,7 +37,8 @@ export async function runChange(
           }
           emit({ repo: repo.name, stage: "affected", matches: scan.matches, message: `${scan.matches.length} affected location(s)` });
 
-          const fix = await fixRepo({ repo, spec, scan, emit });
+          // fixRepo emits its own "passed"; we emit it below with the PR step, so drop the fixer's copy.
+          const fix = await fixRepo({ repo, spec, scan, emit: (e) => e.stage !== "passed" && emit(e) });
           if (fix.status === "passed") {
             emit({ repo: repo.name, stage: "passed", message: "Opening pull request", testOutput: fix.testOutput || undefined });
             const prUrl = await openPullRequest({ repo, spec, scan, fix });
