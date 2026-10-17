@@ -1,4 +1,3 @@
-// Placeholder copy of the shared contract. Person C owns this file; on merge, keep theirs.
 export type ChangeType = "breaking" | "feature";
 
 export interface ChangeSpec {

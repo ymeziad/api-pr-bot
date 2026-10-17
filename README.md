@@ -26,6 +26,7 @@ npm install
 cp .env.example .env.local   # fill in keys; never commit
 npx tsx scripts/try-pipeline-b.ts --no-pr   # scan all demo repos with the cached spec
 npx tsx scripts/reset-demo.ts               # close bot PRs + delete api-pr-bot/* branches
+npm run dev                                 # dashboard at http://localhost:3000 (USE_MOCKS=true runs on fake data, no keys)
 ```
 
 ## Ownership

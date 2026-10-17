@@ -4,3 +4,6 @@ node_modules
 !.env.example
 demo-repos/*/node_modules
 .fixer-out/
+next-env.d.ts
+*.tsbuildinfo
+.claude/

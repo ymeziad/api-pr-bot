@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
     "typecheck": "tsc --noEmit",
     "try:b": "tsx scripts/try-pipeline-b.ts",
     "reset-demo": "tsx scripts/reset-demo.ts"
@@ -11,11 +14,25 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
     "@octokit/rest": "^22.0.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^14.3.0",
     "freestyle": "^0.2.20",
+    "lucide-react": "^1.59.0",
+    "nanoid": "^5.1.16",
+    "next": "^15.5.28",
+    "p-limit": "^7.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
