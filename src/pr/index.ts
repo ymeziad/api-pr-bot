@@ -66,7 +66,9 @@ export function buildPrBody({ spec, scan, fix }: { spec: ChangeSpec; scan: ScanR
     "",
     "## Why this repo is affected",
     "",
-    `Found ${scan.matches.length} call site${scan.matches.length === 1 ? "" : "s"} that ${spec.type === "breaking" ? "use the deprecated API" : "can adopt this feature"}:`,
+    `Found ${scan.matches.length === 1 ? "1 call site that" : `${scan.matches.length} call sites that`} ${
+      spec.type === "breaking" ? "use the deprecated API" : "can adopt this feature"
+    }:`,
     "",
     ...matchLines,
     "",
@@ -141,18 +143,41 @@ export async function openPullRequest(args: {
     head: `${repo.owner}:${branch}`,
     state: "open",
   });
+  let pr: { number: number; html_url: string };
   if (existing.length > 0) {
-    const pr = existing[0];
+    pr = existing[0];
     await octokit.pulls.update({ owner: repo.owner, repo: repo.name, pull_number: pr.number, title, body });
-    return pr.html_url;
+  } else {
+    ({ data: pr } = await octokit.pulls.create({
+      owner: repo.owner,
+      repo: repo.name,
+      head: branch,
+      base: repo.defaultBranch,
+      title,
+      body,
+    }));
   }
-  const { data: pr } = await octokit.pulls.create({
-    owner: repo.owner,
-    repo: repo.name,
-    head: branch,
-    base: repo.defaultBranch,
-    title,
-    body,
-  });
+  await addLabels(octokit, repo, pr.number, spec);
   return pr.html_url;
+}
+
+const LABELS = {
+  "api-pr-bot": { color: "5319e7", description: "Opened automatically by API PR Bot" },
+  "breaking-change": { color: "d93f0b", description: "Upstream API breaking change" },
+  "new-feature": { color: "0e8a16", description: "Upstream API feature to adopt" },
+} as const;
+
+/** Cosmetic only: never fail the PR because labelling failed. */
+async function addLabels(octokit: Octokit, repo: RepoTarget, issueNumber: number, spec: ChangeSpec): Promise<void> {
+  const names = ["api-pr-bot", spec.type === "breaking" ? "breaking-change" : "new-feature"] as const;
+  try {
+    for (const name of names) {
+      await octokit.issues.createLabel({ owner: repo.owner, repo: repo.name, name, ...LABELS[name] }).catch((err) => {
+        if (err.status !== 422) throw err; // 422 = already exists
+      });
+    }
+    await octokit.issues.addLabels({ owner: repo.owner, repo: repo.name, issue_number: issueNumber, labels: [...names] });
+  } catch (err) {
+    console.warn(`Could not label PR #${issueNumber} in ${repo.name}: ${(err as Error).message}`);
+  }
 }
