@@ -53,6 +53,9 @@ const MOCK_MATCHES: Record<string, Record<string, Match[]>> = {
     "bookly-api": [
       { file: "src/billing/payments.ts", line: 27, text: "return stripe.charges.create({ amount, currency, source });" },
     ],
+    "legacy-billing": [
+      { file: "src/invoices.ts", line: 12, text: "const charge = await stripe.charges.create({" },
+    ],
   },
   "payment-intents-automatic-payment-methods": {
     "bookly-api": [
@@ -62,7 +65,7 @@ const MOCK_MATCHES: Record<string, Record<string, Match[]>> = {
 };
 
 export function loadRepos(): RepoTarget[] {
-  return ["acme-shop", "bookly-api", "notes-app"].map((name) => ({
+  return ["acme-shop", "bookly-api", "notes-app", "legacy-billing"].map((name) => ({
     owner: "demo",
     name,
     defaultBranch: "main",
@@ -113,6 +116,33 @@ export async function fixRepo(args: { repo: RepoTarget; spec: ChangeSpec; scan: 
   await sleep(jitter(5000, 7000));
   emit({ repo: name, stage: "testing", message: "Running typecheck + tests" });
   await sleep(jitter(3000, 4000));
+
+  // legacy-billing's tests are pinned to the old Charges API, so no correct migration can pass: the gate rejects it.
+  if (name === "legacy-billing") {
+    const failing = [
+      "> legacy-billing@1.0.0 test",
+      "> vitest run",
+      "",
+      " ✗ test/invoices.test.ts (3 tests | 2 failed) 44ms",
+      "   AssertionError: expected stripe.charges.create to be called",
+      "",
+      " Test Files  1 failed (1)",
+      "      Tests  2 failed | 1 passed (3)",
+    ].join("\n");
+    emit({ repo: name, stage: "retrying", message: "Retrying: tests failed, feeding output back to Claude", testOutput: failing });
+    await sleep(jitter(4000, 5000));
+    emit({ repo: name, stage: "testing", message: "Running typecheck + tests (attempt 2)" });
+    await sleep(jitter(2500, 3500));
+    return {
+      status: "rejected",
+      diff: "",
+      changedFiles: [...new Set(scan.matches.map((m) => m.file))],
+      testOutput: failing,
+      typecheckOutput: "tsc --noEmit: 0 errors",
+      attempts: 2,
+      rejectionReason: "tests failed: test/invoices.test.ts asserts stripe.charges.create was called (tests are pinned to the old API)",
+    };
+  }
 
   let attempts = 1;
   if (retry) {
