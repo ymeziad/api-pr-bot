@@ -17,7 +17,7 @@ for name in acme-shop bookly-api notes-app; do
   tmp=$(mktemp -d)
   (cd "demo-repos/$name" && tar cf - --exclude node_modules .) | (cd "$tmp" && tar xf -)
   (cd "$tmp" && git init -q -b main && git add -A \
-    && git -c user.name="API PR Bot Demo" -c user.email=api-pr-bot@users.noreply.github.com commit -qm "Initial commit" \
+    && git -c user.name="Shipfix Demo" -c user.email=shipfix-bot@users.noreply.github.com commit -qm "Initial commit" \
     && git -c credential.helper= -c credential.helper="!gh auth git-credential" push -q --force "https://github.com/$GITHUB_ORG/$name.git" main)
   rm -rf "$tmp"
   echo "pushed https://github.com/$GITHUB_ORG/$name"

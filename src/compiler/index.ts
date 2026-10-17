@@ -27,8 +27,8 @@ Field rules:
 - id: short kebab-case slug describing the change.
 - type: "breaking" if existing code must change (deprecation, removal, behavior change); "feature" if it is a new opt-in capability customers should adopt.
 - summary: plain English, 1-3 sentences, no marketing language.
-- searchPatterns: JavaScript RegExp source strings (as passed to new RegExp) that match a single line of CALLING CODE in a customer repo, e.g. "stripe\\\\.charges\\\\.create\\\\(" or "\\\\.charges\\\\.create\\\\(". Match SDK method calls, not documentation prose. Escape dots and parentheses. Include one specific and one looser variant.
-- migrationSteps: concrete, ordered code edits a developer (or coding agent) should make. Name exact parameters.
+- searchPatterns: 2 or 3 JavaScript RegExp source strings (as passed to new RegExp) that match a single line of CALLING CODE in a customer repo, e.g. "stripe\\\\.charges\\\\.create\\\\(" or "\\\\.charges\\\\.create\\\\(". Match SDK method calls, not documentation prose. Escape dots and parentheses. Include one specific and one looser variant.
+- migrationSteps: 3 to 5 concrete, ordered code edits that a coding agent will apply to server-side Node code matching searchPatterns. Name exact parameters. Each step must be a required change for the matched calls: no optional alternatives, no "consider" suggestions, no client-side, Dashboard or product advice, and no steps for code the searchPatterns do not find.
 - verify.mustNotMatch: regex sources that must NOT appear in non-test source after a correct fix (for breaking changes, usually the old call). verify.mustMatch: regex sources that MUST appear after the fix (for features, usually the new parameter). Use an empty array when not applicable.
 - exampleBefore / exampleAfter: short TypeScript snippets showing the old and new code.
 - docsUrl: the canonical documentation URL for this change. Prefer the source URL if one is given; never invent URLs.`;
