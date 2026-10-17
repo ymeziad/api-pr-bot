@@ -1,0 +1,20 @@
+{
+  "name": "legacy-billing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Legacy Billing: invoice collection on the Stripe Charges API",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "stripe": "^23.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

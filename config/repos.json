@@ -16,5 +16,11 @@
     "name": "notes-app",
     "defaultBranch": "main",
     "cloneUrl": "https://github.com/ymeziad/notes-app.git"
+  },
+  {
+    "owner": "ymeziad",
+    "name": "legacy-billing",
+    "defaultBranch": "main",
+    "cloneUrl": "https://github.com/ymeziad/legacy-billing.git"
   }
 ]
