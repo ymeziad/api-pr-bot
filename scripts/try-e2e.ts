@@ -40,9 +40,7 @@ await Promise.all(
       } else {
         fix = await fixRepo({ repo, spec, scan, emit });
       }
-      if (fix.status !== "passed") {
-        return emit({ repo: repo.name, stage: fix.status === "rejected" ? "rejected" : "error", message: fix.rejectionReason });
-      }
+      if (fix.status !== "passed") return; // fixRepo already emitted rejected/error
       const prUrl = await openPullRequest({ repo, spec, scan, fix });
       emit({ repo: repo.name, stage: "pr_opened", message: prUrl });
     } catch (err) {
