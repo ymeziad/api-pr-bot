@@ -1,0 +1,18 @@
+{
+  "id": "charges-to-paymentintents",
+  "title": "Migrate from the legacy Charges API to PaymentIntents",
+  "summary": "Stripe's legacy Charges API is deprecated for new payment integrations. Create and confirm a PaymentIntent instead, which supports Strong Customer Authentication and modern payment methods, and read the PaymentIntent status instead of charge.paid.",
+  "type": "breaking",
+  "searchPatterns": ["stripe\\.charges\\.create\\(", "\\.charges\\.create\\("],
+  "migrationSteps": [
+    "Replace stripe.charges.create(...) with stripe.paymentIntents.create(...).",
+    "Pass amount, currency and customer as before; rename source to payment_method.",
+    "Set confirm: true so the payment is created and confirmed in one call, and add automatic_payment_methods: { enabled: true, allow_redirects: \"never\" } for server-side confirmation.",
+    "Keep description and metadata unchanged.",
+    "Determine success with paymentIntent.status === \"succeeded\" instead of charge.paid, and return paymentIntent.id instead of charge.id."
+  ],
+  "docsUrl": "https://docs.stripe.com/payments/payment-intents/migration/charges",
+  "exampleBefore": "const charge = await stripe.charges.create({\n  amount,\n  currency: \"usd\",\n  customer: customerId,\n  source: paymentMethodId,\n});\nreturn { ok: charge.paid, id: charge.id };",
+  "exampleAfter": "const paymentIntent = await stripe.paymentIntents.create({\n  amount,\n  currency: \"usd\",\n  customer: customerId,\n  payment_method: paymentMethodId,\n  confirm: true,\n  automatic_payment_methods: { enabled: true, allow_redirects: \"never\" },\n});\nreturn { ok: paymentIntent.status === \"succeeded\", id: paymentIntent.id };",
+  "verify": { "mustNotMatch": ["\\.charges\\.create\\("] }
+}

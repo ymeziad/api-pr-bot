@@ -1,0 +1,47 @@
+diff --git a/src/checkout.ts b/src/checkout.ts
+index 23a22db..5063581 100644
+--- a/src/checkout.ts
++++ b/src/checkout.ts
+@@ -12,13 +12,15 @@ export async function checkout(
+     throw new Error("Cart total must be greater than zero");
+   }
+ 
+-  const charge = await stripe.charges.create({
++  const paymentIntent = await stripe.paymentIntents.create({
+     amount,
+     currency: cart.currency,
+     customer: customerId,
+-    source: paymentMethodId,
++    payment_method: paymentMethodId,
++    confirm: true,
++    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+     description: `Acme Shop order (${cart.items.length} items)`,
+   });
+ 
+-  return { ok: charge.paid, id: charge.id };
++  return { ok: paymentIntent.status === "succeeded", id: paymentIntent.id };
+ }
+diff --git a/src/subscriptions.ts b/src/subscriptions.ts
+index 21b033b..05a60ee 100644
+--- a/src/subscriptions.ts
++++ b/src/subscriptions.ts
+@@ -18,14 +18,16 @@ export async function renewSubscription(
+   customerId: string,
+   paymentMethodId: string,
+ ): Promise<PaymentOutcome> {
+-  const charge = await stripe.charges.create({
++  const paymentIntent = await stripe.paymentIntents.create({
+     amount: planPrice(plan),
+     currency: "usd",
+     customer: customerId,
+-    source: paymentMethodId,
++    payment_method: paymentMethodId,
++    confirm: true,
++    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+     description: `Acme ${plan} plan renewal`,
+     metadata: { plan },
+   });
+ 
+-  return { ok: charge.paid, id: charge.id };
++  return { ok: paymentIntent.status === "succeeded", id: paymentIntent.id };
+ }

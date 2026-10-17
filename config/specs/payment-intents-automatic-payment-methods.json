@@ -1,0 +1,16 @@
+{
+  "id": "payment-intents-automatic-payment-methods",
+  "title": "Enable automatic payment methods on PaymentIntents",
+  "summary": "Stripe can now choose which payment methods to offer for each PaymentIntent based on your Dashboard settings, currency and the customer's location. Opt in by passing automatic_payment_methods: { enabled: true } when you create a PaymentIntent.",
+  "type": "feature",
+  "searchPatterns": ["\\.paymentIntents\\.create\\("],
+  "migrationSteps": [
+    "Add automatic_payment_methods: { enabled: true } to every stripe.paymentIntents.create(...) call.",
+    "Do not combine it with payment_method_types; remove payment_method_types if present.",
+    "Leave the rest of the PaymentIntent parameters and the confirmation flow unchanged."
+  ],
+  "docsUrl": "https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods",
+  "exampleBefore": "const intent = await stripe.paymentIntents.create({\n  amount,\n  currency: \"usd\",\n  customer: customerId,\n  payment_method: paymentMethodId,\n});",
+  "exampleAfter": "const intent = await stripe.paymentIntents.create({\n  amount,\n  currency: \"usd\",\n  customer: customerId,\n  payment_method: paymentMethodId,\n  automatic_payment_methods: { enabled: true },\n});",
+  "verify": { "mustMatch": ["automatic_payment_methods"] }
+}

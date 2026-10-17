@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /workspace/acme-shop
+
+ ✓ test/subscriptions.test.ts (2 tests) 2ms
+ ✓ test/checkout.test.ts (3 tests) 3ms
+
+ Test Files  2 passed (2)
+      Tests  5 passed (5)
+   Start at  12:04:31
+   Duration  341ms (transform 88ms, setup 0ms, collect 104ms, tests 5ms, environment 0ms, prepare 131ms)
